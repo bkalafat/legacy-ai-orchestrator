@@ -1,8 +1,50 @@
 # Legacy AI Orchestrator
 
-A cost-controlled GitHub Copilot agent collection that assigns expensive reasoning to a strong model and high-volume evidence work to GPT-5.6 Luna.
+A GitHub Copilot custom-agent collection for legacy analysis, strong-model/Luna teamwork, and high-autonomy coding with GPT-5.6 Luna.
 
-## Two workflows
+## Workflows
+
+### Luna Apex
+
+Use when you want GPT-5.6 Luna itself to investigate, implement, test, review, and repair a task end-to-end.
+
+- No subagents.
+- No token-saving behavior.
+- Persistent completion loop inspired by Burke Holland's Beast Mode.
+- Uses current VS Code custom-agent frontmatter.
+- Requires planning for non-trivial work.
+- Uses test-first bug fixing where practical.
+- Runs static checks, focused tests, builds, wider regression checks, and final diff review.
+- Performs an adversarial self-review after normal validation passes.
+- Does not declare success without evidence.
+
+Install:
+
+```text
+.github/agents/luna-apex.agent.md
+```
+
+Then select **Luna Apex** in GitHub Copilot Chat and use:
+
+```text
+prompts/luna-apex-start.prompt.md
+```
+
+For best results, select GPT-5.6 Luna with the highest appropriate reasoning effort in the VS Code model picker. Reasoning effort is selected in the client; it is not forced by an undocumented agent frontmatter field.
+
+Research and design rationale:
+
+```text
+docs/luna-apex-design.md
+```
+
+Optional long-session settings:
+
+```text
+.vscode/settings.luna-apex.example.json
+```
+
+Auto-approve remains disabled by default. Enable it only in trusted repositories after understanding which commands the agent can execute.
 
 ### Legacy Architect
 
@@ -14,14 +56,34 @@ Use for full analysis and modernization planning of large legacy systems.
 
 ### Hybrid Builder
 
-Use for normal feature development, bug fixes, and refactoring.
+Use for feature development, bug fixes, and refactoring where a strong model writes code and Luna performs research and tool-heavy work.
 
 - The strong model decides what must be researched.
 - Luna performs repository search, dependency tracing, web research, read-only database queries, terminal commands, builds, tests, and diagnostics.
-- The strong model reads only the exact target files, makes the final decision, and writes the production code itself.
+- The strong model reads exact target files, makes the final decision, and writes production code.
 - Luna verifies the completed change but never edits application code.
 
-## Architecture
+## Architecture options
+
+### Luna Apex
+
+```text
+User
+  |
+  v
+GPT-5.6 Luna - Luna Apex
+  |
+  +-- understand and investigate
+  +-- plan and implement
+  +-- run tests and builds
+  +-- adversarially review the diff
+  +-- repair failures
+  |
+  v
+Evidence-backed completion
+```
+
+### Strong model with Luna workers
 
 ```text
 User
@@ -49,54 +111,54 @@ Luna runs focused verification
 ├── legacy-architect.agent.md
 ├── luna-codebase-analyst.agent.md
 ├── hybrid-builder.agent.md
-└── luna-research-worker.agent.md
+├── luna-research-worker.agent.md
+└── luna-apex.agent.md
 
 prompts/
 ├── analyze-legacy-codebase.prompt.md
-└── build-with-luna-research.prompt.md
+├── build-with-luna-research.prompt.md
+└── luna-apex-start.prompt.md
 
-.vscode/settings.example.json
-docs/legacy-analysis/.gitkeep
+docs/
+├── legacy-analysis/
+└── luna-apex-design.md
+
+.vscode/
+├── settings.example.json
+└── settings.luna-apex.example.json
 ```
 
 ## Installation
 
-Copy the required `.agent.md` pair into the target repository under `.github/agents/`.
+Copy the required `.agent.md` files into the target repository under `.github/agents/`.
+
+For Luna-only autonomous coding:
+
+- `luna-apex.agent.md`
 
 For legacy system analysis:
 
 - `legacy-architect.agent.md`
 - `luna-codebase-analyst.agent.md`
 
-For coding with Luna research:
+For strong-model coding with Luna research:
 
 - `hybrid-builder.agent.md`
 - `luna-research-worker.agent.md`
 
-Open the target repository in VS Code with GitHub Copilot Chat and select the parent agent from the agent picker.
+Open the target repository in VS Code with GitHub Copilot Chat and select the desired agent from the agent picker.
 
 ## Model setup
 
-Workers are configured for GPT-5.6 Luna. Set the parent agent's `model` field to the exact identifier shown by your VS Code model picker, such as GPT-5.6 Sol or Claude Opus.
+Luna agents are configured for `GPT-5.6 Luna (copilot)`. Parent agents should use the exact qualified identifier shown by the VS Code model picker, such as GPT-5.6 Sol or Claude Opus.
 
-Model identifiers can vary by Copilot entitlement and VS Code release. Prefer the value inserted by the VS Code model picker.
-
-## Hybrid Builder cost controls
-
-- Luna receives only bounded, decision-relevant research questions.
-- Trivial tasks skip subagent research when all required context is already known.
-- Luna returns compact JSON rather than raw logs, complete files, or long reports.
-- The parent has no broad search, web, database, terminal, build, or test tools.
-- The parent writes the code so expensive reasoning is used where implementation quality matters.
-- Independent Luna research tasks can run in parallel, with a recommended maximum of three.
-- Normal work allows one follow-up research round and two fix-and-verify loops.
-- High-risk financial, security, schema, migration, concurrency, retry, and contract changes require stronger evidence and independent verification.
+Model identifiers and capabilities can vary by Copilot entitlement, extension version, client, rollout, and enterprise policy.
 
 ## Database and MCP tools
 
-The Luna worker includes common read, search, command, and web tools. Database access requires a database MCP server or a safe command-line client configured in VS Code.
+The Luna Research Worker includes common read, search, command, and web tools. Database access requires a database MCP server or safe command-line client configured in VS Code.
 
-Add the exact MCP tool or tool set exposed by your environment to the Luna worker's `tools` list when needed, for example:
+Add the exact MCP tool or tool set exposed by your environment when needed, for example:
 
 ```yaml
 tools:
@@ -107,7 +169,7 @@ tools:
   - your-database-mcp/*
 ```
 
-Database access is read-only by default. Use `SELECT`, metadata inspection, sanitized aggregates, and `EXPLAIN`. Do not allow DDL, DML, administrative changes, or unnecessary production row extraction without explicit approval.
+Database access is read-only by default. Use `SELECT`, metadata inspection, sanitized aggregates, and `EXPLAIN`. Do not allow DDL, DML, administrative changes, or unnecessary production-row extraction without explicit approval.
 
 ## Generated legacy-analysis artifacts
 

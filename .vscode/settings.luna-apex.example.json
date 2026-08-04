@@ -1,0 +1,6 @@
+{
+  "chat.agent.maxRequests": 100,
+  "chat.subagents.allowInvocationsFromSubagents": false,
+  "chat.tools.compressOutput.enabled": true,
+  "chat.tools.autoApprove": false
+}
