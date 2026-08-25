@@ -1,52 +1,146 @@
 # Legacy AI Orchestrator
 
-A GitHub Copilot custom-agent collection for legacy analysis, strong-model/Luna teamwork, and high-autonomy coding with GPT-5.6 Luna.
+A GitHub Copilot custom-agent collection for high-autonomy coding, multi-agent orchestration, legacy analysis, and strong-model/low-cost-model teamwork.
 
-## Workflows
+## Apex
 
-### Luna Apex
+**Apex** is the recommended general-purpose autonomous coding workflow.
 
-Use when you want GPT-5.6 Luna itself to investigate, implement, test, review, and repair a task end-to-end.
+It is model-neutral by identity and intentionally aggressive about completion quality. The reference configuration currently runs on `GPT-5.6 Luna (copilot)`, but the model is an implementation detail: when a better low-cost capable model appears, update the `model:` fields without renaming the agents.
 
-- No subagents.
-- No token-saving behavior.
-- Persistent completion loop inspired by Burke Holland's Beast Mode.
-- Uses current VS Code custom-agent frontmatter.
-- Requires planning for non-trivial work.
-- Uses test-first bug fixing where practical.
-- Runs static checks, focused tests, builds, wider regression checks, and final diff review.
-- Performs an adversarial self-review after normal validation passes.
-- Does not declare success without evidence.
+Apex does **not** try to save tokens or credits through reduced effort. It gets its economic advantage only from the configured model while preserving a full engineering workflow: decomposition, selective parallelism, implementation, execution, independent verification, adversarial review, and repair loops.
 
-Install:
+### Architecture
 
 ```text
-.github/agents/luna-apex.agent.md
+                         User
+                           |
+                           v
+                    +-------------+
+                    |    Apex     |
+                    | Orchestrator|
+                    +------+------+ 
+                           |
+       +-------------------+-------------------+
+       |                   |                   |
+       v                   v                   v
+ Apex Explorer      Apex Researcher    Apex Database Worker
+       |                   |                   |
+       +-------------------+-------------------+
+                           |
+                         evidence
+                           |
+                           v
+                         Apex
+                           |
+              scoped, non-overlapping work
+                           |
+             +-------------+-------------+
+             |                           |
+             v                           v
+     Apex Implementer A          Apex Implementer B
+             |                           |
+             +-------------+-------------+
+                           |
+                           v
+                 Apex Terminal Worker
+                           |
+                           v
+                    Apex Verifier
+                           |
+                           v
+                    Apex Reviewer
+                           |
+                   pass / repair loop
+                           |
+                           v
+                    Evidence-backed result
 ```
 
-Then select **Luna Apex** in GitHub Copilot Chat and use:
+### Apex agents
 
 ```text
-prompts/luna-apex-start.prompt.md
+.github/agents/
+├── apex.agent.md
+├── apex-explorer.agent.md
+├── apex-researcher.agent.md
+├── apex-database-worker.agent.md
+├── apex-terminal-worker.agent.md
+├── apex-implementer.agent.md
+├── apex-verifier.agent.md
+└── apex-reviewer.agent.md
 ```
 
-For best results, select GPT-5.6 Luna with the highest appropriate reasoning effort in the VS Code model picker. Reasoning effort is selected in the client; it is not forced by an undocumented agent frontmatter field.
+Only **Apex** is user-invocable. The specialized workers are hidden and are called by Apex through the Copilot subagent mechanism.
 
-Research and design rationale:
+### Worker responsibilities
+
+- **Apex Explorer** — repository search, dependency tracing, existing patterns, tests, configuration, and architecture evidence.
+- **Apex Researcher** — current official documentation, standards, release notes, upstream source, issues, and external technical evidence.
+- **Apex Database Worker** — read-only schema, metadata, query plans, stored procedures, and sanitized database evidence.
+- **Apex Terminal Worker** — builds, tests, linters, diagnostics, logs, runtime checks, and command evidence.
+- **Apex Implementer** — bounded production-code or test edits with explicit write ownership.
+- **Apex Verifier** — independent acceptance-criteria verification after implementation.
+- **Apex Reviewer** — fresh-context adversarial final review for correctness, security, architecture, edge cases, compatibility, and regression risk.
+
+Independent work can run in parallel. Parallel implementers are allowed only for genuinely disjoint write scopes.
+
+### Project installation
+
+Copy the Apex files into a repository under:
 
 ```text
-docs/luna-apex-design.md
+.github/agents/
+```
+
+Then select **Apex** in GitHub Copilot Chat. For complex work, start with:
+
+```text
+prompts/apex-start.prompt.md
+```
+
+Design rationale:
+
+```text
+docs/apex-design.md
 ```
 
 Optional long-session settings:
 
 ```text
-.vscode/settings.luna-apex.example.json
+.vscode/settings.apex.example.json
 ```
 
-Auto-approve remains disabled by default. Enable it only in trusted repositories after understanding which commands the agent can execute.
+### Global installation
 
-### Legacy Architect
+To make Apex available across projects for your user account, copy the version-controlled Apex suite to Copilot's user-level agent directory:
+
+```bash
+mkdir -p ~/.copilot/agents
+cp .github/agents/apex*.agent.md ~/.copilot/agents/
+```
+
+The user-level location is:
+
+```text
+~/.copilot/agents/
+```
+
+Re-copy the files after repository updates if you want the global installation to stay in sync.
+
+### Model policy
+
+The current Apex files pin:
+
+```text
+GPT-5.6 Luna (copilot)
+```
+
+The agent and worker names intentionally contain no model name. When another model becomes the preferred low-cost capable runtime, change the `model:` values in `apex*.agent.md`; the Apex architecture and instructions remain unchanged.
+
+Auto-approve remains disabled by default. Enable it only in trusted repositories after understanding which commands an agent can execute.
+
+## Legacy Architect
 
 Use for full analysis and modernization planning of large legacy systems.
 
@@ -54,7 +148,7 @@ Use for full analysis and modernization planning of large legacy systems.
 - Luna inventories and analyzes modules in isolated contexts.
 - Detailed findings are stored under `docs/legacy-analysis/`.
 
-### Hybrid Builder
+## Hybrid Builder
 
 Use for feature development, bug fixes, and refactoring where a strong model writes code and Luna performs research and tool-heavy work.
 
@@ -63,25 +157,7 @@ Use for feature development, bug fixes, and refactoring where a strong model wri
 - The strong model reads exact target files, makes the final decision, and writes production code.
 - Luna verifies the completed change but never edits application code.
 
-## Architecture options
-
-### Luna Apex
-
-```text
-User
-  |
-  v
-GPT-5.6 Luna - Luna Apex
-  |
-  +-- understand and investigate
-  +-- plan and implement
-  +-- run tests and builds
-  +-- adversarially review the diff
-  +-- repair failures
-  |
-  v
-Evidence-backed completion
-```
+## Other architecture options
 
 ### Strong model with Luna workers
 
@@ -108,68 +184,38 @@ Luna runs focused verification
 
 ```text
 .github/agents/
+├── apex.agent.md
+├── apex-explorer.agent.md
+├── apex-researcher.agent.md
+├── apex-database-worker.agent.md
+├── apex-terminal-worker.agent.md
+├── apex-implementer.agent.md
+├── apex-verifier.agent.md
+├── apex-reviewer.agent.md
 ├── legacy-architect.agent.md
 ├── luna-codebase-analyst.agent.md
 ├── hybrid-builder.agent.md
-├── luna-research-worker.agent.md
-└── luna-apex.agent.md
+└── luna-research-worker.agent.md
 
 prompts/
+├── apex-start.prompt.md
 ├── analyze-legacy-codebase.prompt.md
-├── build-with-luna-research.prompt.md
-└── luna-apex-start.prompt.md
+└── build-with-luna-research.prompt.md
 
 docs/
-├── legacy-analysis/
-└── luna-apex-design.md
+├── apex-design.md
+└── legacy-analysis/
 
 .vscode/
-├── settings.example.json
-└── settings.luna-apex.example.json
+├── settings.apex.example.json
+└── settings.example.json
 ```
-
-## Installation
-
-Copy the required `.agent.md` files into the target repository under `.github/agents/`.
-
-For Luna-only autonomous coding:
-
-- `luna-apex.agent.md`
-
-For legacy system analysis:
-
-- `legacy-architect.agent.md`
-- `luna-codebase-analyst.agent.md`
-
-For strong-model coding with Luna research:
-
-- `hybrid-builder.agent.md`
-- `luna-research-worker.agent.md`
-
-Open the target repository in VS Code with GitHub Copilot Chat and select the desired agent from the agent picker.
-
-## Model setup
-
-Luna agents are configured for `GPT-5.6 Luna (copilot)`. Parent agents should use the exact qualified identifier shown by the VS Code model picker, such as GPT-5.6 Sol or Claude Opus.
-
-Model identifiers and capabilities can vary by Copilot entitlement, extension version, client, rollout, and enterprise policy.
 
 ## Database and MCP tools
 
-The Luna Research Worker includes common read, search, command, and web tools. Database access requires a database MCP server or safe command-line client configured in VS Code.
+Apex Database Worker is read-only by default and uses a configured database MCP server or safe command-line client when available. Because MCP tool names differ by environment, the global agent does not hard-code a company- or database-specific MCP identifier.
 
-Add the exact MCP tool or tool set exposed by your environment when needed, for example:
-
-```yaml
-tools:
-  - read
-  - search
-  - execute
-  - web
-  - your-database-mcp/*
-```
-
-Database access is read-only by default. Use `SELECT`, metadata inspection, sanitized aggregates, and `EXPLAIN`. Do not allow DDL, DML, administrative changes, or unnecessary production-row extraction without explicit approval.
+If your environment exposes a database MCP tool, add that exact tool or tool set to the worker's frontmatter as needed. Keep database access read-only by default: use `SELECT`, metadata inspection, sanitized aggregates, and `EXPLAIN`. Do not allow DDL, DML, administrative changes, or unnecessary production-row extraction without explicit approval.
 
 ## Generated legacy-analysis artifacts
 
@@ -185,7 +231,7 @@ docs/legacy-analysis/
 
 ## Safety
 
-Use read-only access for databases, SharePoint, Confluence, and other external systems during research. Never expose secrets, credentials, customer records, card data, or production personal data to agent output.
+Use read-only access for databases and external knowledge systems during research unless mutation is explicitly requested and authorized. Never expose secrets, credentials, customer records, card data, or production personal data to agent output.
 
 A clean-slate rewrite should not be approved until behavioral completeness, reconciliation, audit requirements, failure recovery, parallel-run strategy, and rollback have evidence.
 
