@@ -105,6 +105,10 @@ Design rationale:
 docs/apex-design.md
 ```
 
+Research findings and phased implementation roadmap:
+
+[luna-premium-agent-system.md](docs/luna-premium-agent-system.md)
+
 Optional long-session settings:
 
 ```text
